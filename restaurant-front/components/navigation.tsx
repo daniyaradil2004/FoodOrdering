@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { memo, useState } from "react"
 import { ChefHat, ShoppingCart, Heart, User, Menu, X, Search } from "lucide-react"
 import Link from "next/link"
 
-export default function Navigation({ cartCount = 0 }) {
+function Navigation({ cartCount = 0 }: { cartCount?: number }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
@@ -84,3 +84,6 @@ export default function Navigation({ cartCount = 0 }) {
     </nav>
   )
 }
+
+// Memoize to prevent re-renders when cartCount doesn't change
+export default memo(Navigation)

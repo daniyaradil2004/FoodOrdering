@@ -1,6 +1,7 @@
 "use client"
 
-import { Heart, ShoppingCart, Star } from "lucide-react"
+import { memo } from "react"
+import { Heart, ShoppingCart, Star, Plus, Minus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
@@ -15,15 +16,26 @@ interface Product {
   recommended?: boolean
 }
 
-export default function ProductCard({
-  product,
-  onToggleFavorite,
-  onAddToCart,
-}: {
+interface ProductCardProps {
   product: Product
   onToggleFavorite: (id: string) => void
   onAddToCart: (id: string) => void
-}) {
+  // New props for cart controls
+  cartQuantity?: number
+  onUpdateQuantity?: (id: string, quantity: number) => void
+  onRemoveFromCart?: (id: string) => void
+}
+
+function ProductCard({
+  product,
+  onToggleFavorite,
+  onAddToCart,
+  cartQuantity = 0,
+  onUpdateQuantity,
+  onRemoveFromCart,
+}: ProductCardProps) {
+  const isInCart = cartQuantity > 0
+
   return (
     <div className="bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       <div className="relative aspect-square bg-secondary overflow-hidden group">
@@ -68,15 +80,62 @@ export default function ProductCard({
 
         <div className="flex items-center justify-between pt-2">
           <span className="text-lg font-bold text-primary">${product.price.toFixed(2)}</span>
-          <Button
-            onClick={() => onAddToCart(product.id)}
-            size="sm"
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
-          >
-            <ShoppingCart className="w-4 h-4" />
-          </Button>
+
+          {/* Show cart controls if item is in cart, otherwise show add button */}
+          {isInCart && onUpdateQuantity && onRemoveFromCart ? (
+            <div className="flex items-center gap-2 animate-in fade-in duration-300">
+              <button
+                onClick={() => onRemoveFromCart(product.id)}
+                className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition"
+                title="Remove from cart"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <div className="flex items-center gap-1 bg-secondary rounded-lg px-1">
+                <button
+                  onClick={() => onUpdateQuantity(product.id, cartQuantity - 1)}
+                  className="p-1.5 hover:bg-primary/10 rounded transition"
+                >
+                  <Minus className="w-3.5 h-3.5 text-foreground" />
+                </button>
+                <span className="w-8 text-center font-semibold text-sm text-foreground">
+                  {cartQuantity}
+                </span>
+                <button
+                  onClick={() => onUpdateQuantity(product.id, cartQuantity + 1)}
+                  className="p-1.5 hover:bg-primary/10 rounded transition"
+                >
+                  <Plus className="w-3.5 h-3.5 text-foreground" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              onClick={() => onAddToCart(product.id)}
+              size="sm"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              <ShoppingCart className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       </div>
     </div>
   )
 }
+
+// Memoize component to prevent re-renders when parent updates
+// Only re-render if product data or callbacks change
+export default memo(ProductCard, (prevProps, nextProps) => {
+  return (
+    prevProps.product.id === nextProps.product.id &&
+    prevProps.product.isFavorite === nextProps.product.isFavorite &&
+    prevProps.product.price === nextProps.product.price &&
+    prevProps.product.rating === nextProps.product.rating &&
+    prevProps.cartQuantity === nextProps.cartQuantity &&
+    prevProps.onToggleFavorite === nextProps.onToggleFavorite &&
+    prevProps.onAddToCart === nextProps.onAddToCart &&
+    prevProps.onUpdateQuantity === nextProps.onUpdateQuantity &&
+    prevProps.onRemoveFromCart === nextProps.onRemoveFromCart
+  )
+})

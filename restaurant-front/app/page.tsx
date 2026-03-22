@@ -19,15 +19,15 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const { login, register, isAuthenticated } = useAuth()
+  const { login, register, isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (but wait for auth check to complete)
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!isLoading && isAuthenticated) {
       router.push("/home")
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, isLoading, router])
 
   const validatePassword = (pwd: string): string | null => {
     if (pwd.length < 8) {
@@ -49,10 +49,15 @@ export default function AuthPage() {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setSuccess(null)
 
     try {
       if (isLogin) {
         await login({ email, password })
+        // Only redirect after successful login
+        // Clear form
+        setEmail("")
+        setPassword("")
         router.push("/home")
       } else {
         if (!name.trim()) {
@@ -72,7 +77,7 @@ export default function AuthPage() {
           return
         }
         await register({ name, email, password })
-        // After successful registration, redirect to login page
+        // After successful registration, show success message and switch to login
         setError(null)
         setSuccess("Registration successful! Please sign in.")
         setIsLogin(true)
@@ -80,12 +85,29 @@ export default function AuthPage() {
         setPassword("")
         setConfirmPassword("")
         setName("")
+        setLoading(false) // Reset loading state after successful registration
       }
     } catch (err: any) {
       setError(err.message || "An error occurred. Please try again.")
-    } finally {
       setLoading(false)
     }
+  }
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-accent/5 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't show auth page if already authenticated (will redirect)
+  if (isAuthenticated) {
+    return null
   }
 
   return (
@@ -223,6 +245,7 @@ export default function AuthPage() {
                     setError(null)
                     setSuccess(null)
                     setConfirmPassword("")
+                    setLoading(false) // Reset loading state when switching forms
                   }}
                   className="w-full text-sm text-primary hover:underline font-medium py-2"
                 >

@@ -60,11 +60,14 @@ export default function ProfilePage() {
   })
 
   useEffect(() => {
-    loadProfile()
-    loadOrders()
-    loadComments()
-    loadFavoritesCount()
-  }, [])
+    // Only load data if user is authenticated
+    if (authUser) {
+      loadProfile()
+      loadOrders()
+      loadComments()
+      loadFavoritesCount()
+    }
+  }, [authUser])
 
   const loadProfile = async () => {
     try {
@@ -82,6 +85,11 @@ export default function ProfilePage() {
         },
       })
     } catch (err: any) {
+      // If authentication fails, clear error and let ProtectedRoute handle redirect
+      if (err.message?.includes("Authentication required") || err.status === 401) {
+        setError(null)
+        return
+      }
       setError(err.message || "Failed to load profile")
     } finally {
       setLoading(false)
@@ -93,6 +101,11 @@ export default function ProfilePage() {
       const userOrders = await getUserOrders()
       setOrders(userOrders || [])
     } catch (err: any) {
+      // Silently handle auth errors - ProtectedRoute will handle redirect
+      if (err.message?.includes("Authentication required") || err.status === 401) {
+        setOrders([])
+        return
+      }
       console.error("Failed to load orders:", err)
       setOrders([])
     }
@@ -118,6 +131,11 @@ export default function ProfilePage() {
       )
       setComments(commentsWithProducts || [])
     } catch (err: any) {
+      // Silently handle auth errors - ProtectedRoute will handle redirect
+      if (err.message?.includes("Authentication required") || err.status === 401) {
+        setComments([])
+        return
+      }
       console.error("Failed to load comments:", err)
       setComments([])
     }
@@ -128,6 +146,11 @@ export default function ProfilePage() {
       const userFavorites = await getUserFavorites()
       setFavoritesCount(userFavorites?.length || 0)
     } catch (err: any) {
+      // Silently handle auth errors - ProtectedRoute will handle redirect
+      if (err.message?.includes("Authentication required") || err.status === 401) {
+        setFavoritesCount(0)
+        return
+      }
       console.error("Failed to load favorites count:", err)
       setFavoritesCount(0)
     }

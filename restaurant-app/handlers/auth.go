@@ -31,6 +31,34 @@ type registerRequest struct {
 	Phone    string `json:"phone"`
 }
 
+type checkEmailResponse struct {
+	Email     string `json:"email"`
+	Available bool   `json:"available"`
+}
+
+// CheckEmailAvailability is a side-effect-free endpoint used by the frontend
+// for asynchronous form validation during registration.
+// GET /api/auth/check-email?email=you@example.com
+func (h *AuthHandler) CheckEmailAvailability(w http.ResponseWriter, r *http.Request) {
+	email := strings.TrimSpace(r.URL.Query().Get("email"))
+	if email == "" {
+		respondError(w, http.StatusBadRequest, "email is required")
+		return
+	}
+	if _, err := mail.ParseAddress(email); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid email format")
+		return
+	}
+
+	_, err := h.userRepo.FindByEmail(r.Context(), email)
+	// If user exists -> not available. If not found -> available.
+	available := err != nil
+	respondJSON(w, http.StatusOK, checkEmailResponse{
+		Email:     email,
+		Available: available,
+	})
+}
+
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req registerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
